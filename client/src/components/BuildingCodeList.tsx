@@ -102,4 +102,4 @@ const BuildingCodeList = () => {
   );
 };
 
-export default BuildingCodeList; 
+export default BuildingCodeList;
