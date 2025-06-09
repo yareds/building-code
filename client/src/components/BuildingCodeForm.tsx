@@ -15,8 +15,10 @@ import {
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-// Use the full URL to avoid any path issues on mobile
-const API_URL = 'https://building-code-server.herokuapp.com';
+// Update API URL to use relative path and handle both HTTP and HTTPS
+const API_URL = window.location.protocol === 'https:' 
+  ? 'https://building-code-server.herokuapp.com'
+  : 'http://localhost:5000';
 
 interface FormData {
   buildingName: string;
@@ -43,19 +45,23 @@ const BuildingCodeForm = () => {
     setError('');
 
     try {
+      // Add CORS headers and increase timeout
       const response = await axios.post(`${API_URL}/api/building-codes`, formData, {
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Access-Control-Allow-Origin': '*'
         },
-        timeout: 10000 // 10 second timeout
+        timeout: 30000, // 30 second timeout
+        withCredentials: false // Disable credentials for CORS
       });
 
       if (response.status === 201 || response.status === 200) {
         setSuccess(true);
+        // Increase timeout before navigation to ensure the success message is seen
         setTimeout(() => {
           navigate('/');
-        }, 1500);
+        }, 2000);
       } else {
         throw new Error('Unexpected response from server');
       }
@@ -65,10 +71,13 @@ const BuildingCodeForm = () => {
       
       if (error.response) {
         // Server responded with error
-        errorMessage = error.response.data.message || errorMessage;
+        errorMessage = error.response.data.message || 'Server error. Please try again.';
       } else if (error.request) {
         // No response received
-        errorMessage = 'Network error. Please check your connection and try again.';
+        errorMessage = 'Network error. Please check your connection and try again. If the problem persists, please ensure you are connected to the internet and refresh the page.';
+      } else {
+        // Something else went wrong
+        errorMessage = 'An unexpected error occurred. Please try again.';
       }
       
       setError(errorMessage);
@@ -85,6 +94,12 @@ const BuildingCodeForm = () => {
     }));
     // Clear error when user starts typing
     if (error) setError('');
+  };
+
+  // Add retry button for network errors
+  const handleRetry = () => {
+    setError('');
+    setIsSubmitting(false);
   };
 
   return (
@@ -175,12 +190,39 @@ const BuildingCodeForm = () => {
               'Add Building Code'
             )}
           </Button>
+
+          {error && (
+            <Button
+              onClick={handleRetry}
+              variant="outlined"
+              color="primary"
+              fullWidth
+              size={isMobile ? "large" : "medium"}
+              sx={{ 
+                mt: 2,
+                py: isMobile ? 1.5 : 1.8,
+                fontSize: isMobile ? '1rem' : '1.1rem',
+                textTransform: 'none',
+                borderRadius: isMobile ? '8px' : '4px',
+                borderWidth: 2,
+                '&:hover': {
+                  borderWidth: 2,
+                  backgroundColor: 'rgba(25, 118, 210, 0.04)'
+                },
+                '&:active': {
+                  transform: isMobile ? 'scale(0.98)' : 'none'
+                }
+              }}
+            >
+              Try Again
+            </Button>
+          )}
         </Box>
       </Paper>
 
       <Snackbar 
         open={!!error} 
-        autoHideDuration={6000} 
+        autoHideDuration={10000}
         onClose={() => setError('')}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
@@ -200,7 +242,7 @@ const BuildingCodeForm = () => {
 
       <Snackbar
         open={success}
-        autoHideDuration={1500}
+        autoHideDuration={2000}
         onClose={() => setSuccess(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
