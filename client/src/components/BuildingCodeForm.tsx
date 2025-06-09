@@ -9,12 +9,14 @@ import {
   useTheme,
   useMediaQuery,
   Snackbar,
-  Alert
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Use the full URL to avoid any path issues on mobile
+const API_URL = 'https://building-code-server.herokuapp.com';
 
 interface FormData {
   buildingName: string;
@@ -33,18 +35,45 @@ const BuildingCodeForm = () => {
   
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setError('');
+
     try {
-      await axios.post(`${API_URL}/api/building-codes`, formData);
-      setSuccess(true);
-      setTimeout(() => {
-        navigate('/');
-      }, 1500);
-    } catch (error) {
+      const response = await axios.post(`${API_URL}/api/building-codes`, formData, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        timeout: 10000 // 10 second timeout
+      });
+
+      if (response.status === 201 || response.status === 200) {
+        setSuccess(true);
+        setTimeout(() => {
+          navigate('/');
+        }, 1500);
+      } else {
+        throw new Error('Unexpected response from server');
+      }
+    } catch (error: any) {
       console.error('Error adding building code:', error);
-      setError('Failed to add building code. Please try again.');
+      let errorMessage = 'Failed to add building code. Please try again.';
+      
+      if (error.response) {
+        // Server responded with error
+        errorMessage = error.response.data.message || errorMessage;
+      } else if (error.request) {
+        // No response received
+        errorMessage = 'Network error. Please check your connection and try again.';
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -54,6 +83,8 @@ const BuildingCodeForm = () => {
       ...prev,
       [name]: value
     }));
+    // Clear error when user starts typing
+    if (error) setError('');
   };
 
   return (
@@ -93,6 +124,7 @@ const BuildingCodeForm = () => {
             value={formData.buildingName}
             onChange={handleChange}
             required
+            disabled={isSubmitting}
             sx={{ 
               '& .MuiInputBase-root': {
                 height: isMobile ? '48px' : '56px'
@@ -107,6 +139,7 @@ const BuildingCodeForm = () => {
             value={formData.code}
             onChange={handleChange}
             required
+            disabled={isSubmitting}
             sx={{ 
               '& .MuiInputBase-root': {
                 height: isMobile ? '48px' : '56px'
@@ -119,6 +152,7 @@ const BuildingCodeForm = () => {
             variant="contained"
             color="primary"
             fullWidth
+            disabled={isSubmitting}
             size={isMobile ? "large" : "medium"}
             sx={{ 
               mt: { xs: 1, sm: 2 },
@@ -126,6 +160,7 @@ const BuildingCodeForm = () => {
               fontSize: isMobile ? '1rem' : '1.1rem',
               textTransform: 'none',
               borderRadius: isMobile ? '8px' : '4px',
+              position: 'relative',
               '&:hover': {
                 backgroundColor: 'rgba(0, 0, 0, 0.8)'
               },
@@ -134,7 +169,11 @@ const BuildingCodeForm = () => {
               }
             }}
           >
-            Add Building Code
+            {isSubmitting ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              'Add Building Code'
+            )}
           </Button>
         </Box>
       </Paper>
@@ -145,7 +184,16 @@ const BuildingCodeForm = () => {
         onClose={() => setError('')}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert severity="error" sx={{ width: '100%' }}>
+        <Alert 
+          severity="error" 
+          sx={{ 
+            width: '100%',
+            ...(isMobile && {
+              fontSize: '0.9rem',
+              padding: '6px 12px'
+            })
+          }}
+        >
           {error}
         </Alert>
       </Snackbar>
@@ -156,7 +204,16 @@ const BuildingCodeForm = () => {
         onClose={() => setSuccess(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert severity="success" sx={{ width: '100%' }}>
+        <Alert 
+          severity="success" 
+          sx={{ 
+            width: '100%',
+            ...(isMobile && {
+              fontSize: '0.9rem',
+              padding: '6px 12px'
+            })
+          }}
+        >
           Building code added successfully!
         </Alert>
       </Snackbar>
