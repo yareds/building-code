@@ -15,10 +15,11 @@ import {
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-// Use local IP for development to allow mobile access
-const API_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:5000'
-  : 'http://10.0.0.59:5000';  // Your computer's local IP address
+// Use the current hostname for the API URL
+const API_URL = `http://${window.location.hostname}:5000`;
+
+// Log the API URL being used
+console.log('Using API URL:', API_URL);
 
 interface FormData {
   buildingName: string;
