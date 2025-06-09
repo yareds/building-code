@@ -15,10 +15,15 @@ import {
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-// Use the current hostname for the API URL
-const API_URL = `http://${window.location.hostname}:5000`;
+// Determine the API URL based on the current environment
+const API_URL = window.location.hostname === 'building-code.netlify.app'
+  ? 'https://building-code-server.herokuapp.com'  // Production server
+  : window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5000'  // Local development
+    : `http://${window.location.hostname}:5000`;  // Local network testing
 
-// Log the API URL being used
+// Log the current environment and API URL
+console.log('Current hostname:', window.location.hostname);
 console.log('Using API URL:', API_URL);
 
 interface FormData {
