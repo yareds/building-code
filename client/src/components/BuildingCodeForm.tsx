@@ -15,10 +15,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-// Update API URL to use relative path and handle both HTTP and HTTPS
-const API_URL = window.location.protocol === 'https:' 
-  ? 'https://building-code-server.herokuapp.com'
-  : 'http://localhost:5000';
+// Use localhost for development
+const API_URL = 'http://localhost:5000';
 
 interface FormData {
   buildingName: string;
@@ -45,20 +43,22 @@ const BuildingCodeForm = () => {
     setError('');
 
     try {
-      // Add CORS headers and increase timeout
-      const response = await axios.post(`${API_URL}/api/building-codes`, formData, {
+      console.log('Submitting to:', `${API_URL}/api/building-codes`);
+      
+      const response = await axios({
+        method: 'post',
+        url: `${API_URL}/api/building-codes`,
+        data: formData,
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Access-Control-Allow-Origin': '*'
         },
-        timeout: 30000, // 30 second timeout
-        withCredentials: false // Disable credentials for CORS
+        timeout: 10000,
       });
+
+      console.log('Response:', response);
 
       if (response.status === 201 || response.status === 200) {
         setSuccess(true);
-        // Increase timeout before navigation to ensure the success message is seen
         setTimeout(() => {
           navigate('/');
         }, 2000);
@@ -66,17 +66,18 @@ const BuildingCodeForm = () => {
         throw new Error('Unexpected response from server');
       }
     } catch (error: any) {
-      console.error('Error adding building code:', error);
+      console.error('Error details:', error);
+      
       let errorMessage = 'Failed to add building code. Please try again.';
       
       if (error.response) {
-        // Server responded with error
+        console.log('Error response:', error.response);
         errorMessage = error.response.data.message || 'Server error. Please try again.';
       } else if (error.request) {
-        // No response received
-        errorMessage = 'Network error. Please check your connection and try again. If the problem persists, please ensure you are connected to the internet and refresh the page.';
+        console.log('Error request:', error.request);
+        errorMessage = 'Cannot connect to server. Please ensure the server is running and try again.';
       } else {
-        // Something else went wrong
+        console.log('Error message:', error.message);
         errorMessage = 'An unexpected error occurred. Please try again.';
       }
       
@@ -92,11 +93,9 @@ const BuildingCodeForm = () => {
       ...prev,
       [name]: value
     }));
-    // Clear error when user starts typing
     if (error) setError('');
   };
 
-  // Add retry button for network errors
   const handleRetry = () => {
     setError('');
     setIsSubmitting(false);
