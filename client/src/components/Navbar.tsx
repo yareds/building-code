@@ -1,32 +1,59 @@
-import { Link } from 'react-router-dom';
-import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
+import React from 'react';
+import { AppBar, Toolbar, Typography, Button, Box, IconButton } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 import AddIcon from '@mui/icons-material/Add';
+import SearchIcon from '@mui/icons-material/Search';
 
 const Navbar = () => {
   return (
-    <AppBar position="static" sx={{ mb: 4 }}>
+    <AppBar 
+      position="static" 
+      sx={{
+        backgroundColor: '#1976d2',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      }}
+    >
       <Toolbar>
-        <Typography
-          variant="h6"
-          component={Link}
+        <Typography 
+          variant="h6" 
+          component={RouterLink} 
           to="/"
-          sx={{
+          sx={{ 
             flexGrow: 1,
             textDecoration: 'none',
             color: 'inherit',
-            fontWeight: 'bold'
+            fontWeight: 500,
+            '&:hover': {
+              color: 'rgba(255, 255, 255, 0.9)'
+            }
           }}
         >
-          Building Code Search
+          Building Codes
         </Typography>
-        <Box>
+
+        <Box sx={{ display: 'flex', gap: { xs: 1, sm: 2 } }}>
           <Button
-            component={Link}
+            component={RouterLink}
             to="/add"
             color="inherit"
             startIcon={<AddIcon />}
+            sx={{
+              fontWeight: 500,
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)'
+              },
+              px: { xs: 1.5, sm: 2 },
+              py: 1,
+              borderRadius: '4px',
+              textTransform: 'none'
+            }}
           >
-            Add Building Code
+            <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+              Add Code
+            </Box>
+            <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+              Add
+            </Box>
           </Button>
         </Box>
       </Toolbar>
@@ -34,4 +61,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar; 
+export default Navbar;
