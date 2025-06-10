@@ -1,102 +1,273 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useState } from 'react';
 import {
-  Container,
-  Paper,
+  Box,
   TextField,
   Button,
+  Paper,
   Typography,
-  Box
+  Container,
+  useTheme,
+  useMediaQuery,
+  Snackbar,
+  Alert,
+  CircularProgress
 } from '@mui/material';
-import type { BuildingCodeFormData } from '../types/types';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+// Determine the API URL based on the current environment
+const API_URL = window.location.hostname === 'building-code.netlify.app'
+  ? 'https://building-code-server.herokuapp.com'  // Production server
+  : window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5000'  // Local development
+    : `http://${window.location.hostname}:5000`;  // Local network testing
+
+// Log the current environment and API URL
+console.log('Current hostname:', window.location.hostname);
+console.log('Using API URL:', API_URL);
+
+interface FormData {
+  buildingName: string;
+  code: string;
+}
+
 const BuildingCodeForm = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
-  const { id } = useParams();
-  const [formData, setFormData] = useState<BuildingCodeFormData>({
+  
+  const [formData, setFormData] = useState<FormData>({
     buildingName: '',
     code: ''
   });
-
-  useEffect(() => {
-    if (id) {
-      fetchBuildingCode();
-    }
-  }, [id]);
-
-  const fetchBuildingCode = async () => {
-    try {
-      const response = await axios.get(`http://localhost:5000/api/building-codes/${id}`);
-      const { buildingName, code } = response.data;
-      setFormData({ buildingName, code });
-    } catch (error) {
-      console.error('Error fetching building code:', error);
-      navigate('/');
-    }
-  };
+  
+  const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setError('');
+
     try {
-      if (id) {
-        await axios.put(`http://localhost:5000/api/building-codes/${id}`, formData);
+      console.log('Submitting to:', `${API_URL}/api/building-codes`);
+      
+      const response = await axios({
+        method: 'post',
+        url: `${API_URL}/api/building-codes`,
+        data: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000,
+      });
+
+      console.log('Response:', response);
+
+      if (response.status === 201 || response.status === 200) {
+        setSuccess(true);
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
       } else {
-        await axios.post('http://localhost:5000/api/building-codes', formData);
+        throw new Error('Unexpected response from server');
       }
-      navigate('/');
-    } catch (error) {
-      console.error('Error saving building code:', error);
+    } catch (error: any) {
+      console.error('Error details:', error);
+      
+      let errorMessage = 'Failed to add building code. Please try again.';
+      
+      if (error.response) {
+        console.log('Error response:', error.response);
+        errorMessage = error.response.data.message || 'Server error. Please try again.';
+      } else if (error.request) {
+        console.log('Error request:', error.request);
+        errorMessage = 'Cannot connect to server. Please ensure the server is running and try again.';
+      } else {
+        console.log('Error message:', error.message);
+        errorMessage = 'An unexpected error occurred. Please try again.';
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+    if (error) setError('');
+  };
+
+  const handleRetry = () => {
+    setError('');
+    setIsSubmitting(false);
   };
 
   return (
-    <Container maxWidth="sm">
-      <Paper sx={{ p: 4, mt: 4 }}>
-        <Typography variant="h5" component="h2" gutterBottom>
-          {id ? 'Edit Building Code' : 'Add New Building Code'}
+    <Container maxWidth="sm" sx={{ py: { xs: 2, sm: 4 } }}>
+      <Paper 
+        elevation={3} 
+        sx={{ 
+          p: { xs: 2, sm: 3 },
+          borderRadius: { xs: 2, sm: 3 },
+          backgroundColor: theme.palette.background.paper,
+          boxShadow: isMobile ? '0 2px 8px rgba(0,0,0,0.1)' : theme.shadows[3]
+        }}
+      >
+        <Typography 
+          variant={isMobile ? "h6" : "h5"} 
+          component="h1" 
+          gutterBottom 
+          align="center"
+          sx={{ mb: { xs: 2, sm: 3 } }}
+        >
+          Add Building Code
         </Typography>
-        <Box component="form" onSubmit={handleSubmit}>
+        
+        <Box 
+          component="form" 
+          onSubmit={handleSubmit}
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: { xs: 2, sm: 3 }
+          }}
+        >
           <TextField
             fullWidth
             label="Building Name"
             name="buildingName"
             value={formData.buildingName}
             onChange={handleChange}
-            margin="normal"
             required
+            disabled={isSubmitting}
+            sx={{ 
+              '& .MuiInputBase-root': {
+                height: isMobile ? '48px' : '56px'
+              }
+            }}
           />
+
           <TextField
             fullWidth
-            label="Building Code"
+            label="Code"
             name="code"
             value={formData.code}
             onChange={handleChange}
-            margin="normal"
             required
+            disabled={isSubmitting}
+            sx={{ 
+              '& .MuiInputBase-root': {
+                height: isMobile ? '48px' : '56px'
+              }
+            }}
           />
-          <Box sx={{ mt: 3 }}>
+
+          <Button 
+            type="submit"
+            variant="contained"
+            color="primary"
+            fullWidth
+            disabled={isSubmitting}
+            size={isMobile ? "large" : "medium"}
+            sx={{ 
+              mt: { xs: 1, sm: 2 },
+              py: isMobile ? 1.5 : 1.8,
+              fontSize: isMobile ? '1rem' : '1.1rem',
+              textTransform: 'none',
+              borderRadius: isMobile ? '8px' : '4px',
+              position: 'relative',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)'
+              },
+              '&:active': {
+                transform: isMobile ? 'scale(0.98)' : 'none'
+              }
+            }}
+          >
+            {isSubmitting ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              'Add Building Code'
+            )}
+          </Button>
+
+          {error && (
             <Button
-              type="submit"
-              variant="contained"
+              onClick={handleRetry}
+              variant="outlined"
               color="primary"
               fullWidth
+              size={isMobile ? "large" : "medium"}
+              sx={{ 
+                mt: 2,
+                py: isMobile ? 1.5 : 1.8,
+                fontSize: isMobile ? '1rem' : '1.1rem',
+                textTransform: 'none',
+                borderRadius: isMobile ? '8px' : '4px',
+                borderWidth: 2,
+                '&:hover': {
+                  borderWidth: 2,
+                  backgroundColor: 'rgba(25, 118, 210, 0.04)'
+                },
+                '&:active': {
+                  transform: isMobile ? 'scale(0.98)' : 'none'
+                }
+              }}
             >
-              {id ? 'Update' : 'Add'} Building Code
+              Try Again
             </Button>
-          </Box>
+          )}
         </Box>
       </Paper>
+
+      <Snackbar 
+        open={!!error} 
+        autoHideDuration={10000}
+        onClose={() => setError('')}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          severity="error" 
+          sx={{ 
+            width: '100%',
+            ...(isMobile && {
+              fontSize: '0.9rem',
+              padding: '6px 12px'
+            })
+          }}
+        >
+          {error}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={success}
+        autoHideDuration={2000}
+        onClose={() => setSuccess(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          severity="success" 
+          sx={{ 
+            width: '100%',
+            ...(isMobile && {
+              fontSize: '0.9rem',
+              padding: '6px 12px'
+            })
+          }}
+        >
+          Building code added successfully!
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };
 
-export default BuildingCodeForm; 
+export default BuildingCodeForm;

@@ -1,28 +1,41 @@
 {
   "name": "building-code-server",
   "version": "1.0.0",
-  "description": "Building Code Search API",
+  "description": "Building Code Management API",
   "main": "dist/index.js",
   "scripts": {
     "start": "node dist/index.js",
-    "dev": "nodemon src/index.ts",
     "build": "tsc",
-    "watch": "tsc -w"
+    "dev": "nodemon src/index.ts",
+    "postinstall": "npm run build"
+  },
+  "engines": {
+    "node": ">=14.0.0"
   },
   "dependencies": {
     "@types/dotenv": "^6.1.1",
     "cors": "^2.8.5",
+<<<<<<< HEAD
     "dotenv": "^16.5.0",
+=======
+>>>>>>> a2393b3a0be23b342b5f833a2b92cb26de969761
     "express": "^4.18.2",
-    "mongoose": "^7.0.3"
+    "mongoose": "^7.0.3",
+    "typescript": "^5.0.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.13",
     "@types/express": "^4.17.17",
     "@types/node": "^18.15.11",
     "nodemon": "^2.0.22",
+<<<<<<< HEAD
     "ts-node": "^10.9.1",
     "typescript": "^5.0.3",
     "vercel": "^42.3.0"
   }
 }
+=======
+    "ts-node": "^10.9.1"
+  }
+} 
+>>>>>>> a2393b3a0be23b342b5f833a2b92cb26de969761
